@@ -601,8 +601,13 @@ void RuntimeManifestFile::CreateIfValid(const Json::Value &root_node, const std:
     // global library path.
     if (lib_path.find('\\') != std::string::npos || lib_path.find('/') != std::string::npos) {
         // If the library_path is an absolute path, just use that if it exists
-        // Otherwise, treat the library path as a relative path based on the JSON file.
-        if (!FileSysUtilsIsAbsolutePath(lib_path)) {
+        if (FileSysUtilsIsAbsolutePath(lib_path)) {
+            if (!FileSysUtilsLinkerPathExists(lib_path)) {
+                error_ss << filename << " library " << lib_path << " does not appear to exist";
+                LoaderLogger::LogErrorMessage("", error_ss.str());
+                return;
+            }
+        } else {
             // Otherwise, treat the library path as a relative path based on the JSON file.
             std::string canonical_path;
             std::string combined_path;
@@ -613,8 +618,8 @@ void RuntimeManifestFile::CreateIfValid(const Json::Value &root_node, const std:
                 canonical_path = filename;
             }
             if (!FileSysUtilsGetParentPath(canonical_path, file_parent) ||
-                !FileSysUtilsCombinePaths(file_parent, lib_path, combined_path)) {
-                error_ss << filename << " filesystem operations failed for path  " << canonical_path;
+                !FileSysUtilsCombinePaths(file_parent, lib_path, combined_path) || !FileSysUtilsLinkerPathExists(combined_path)) {
+                error_ss << filename << " library " << combined_path << " does not appear to exist";
                 LoaderLogger::LogErrorMessage("", error_ss.str());
                 return;
             }
@@ -837,7 +842,7 @@ void ApiLayerManifestFile::CreateIfValid(ManifestFileType type, const std::strin
     if (library_path.find('\\') != std::string::npos || library_path.find('/') != std::string::npos) {
         // If the library_path is an absolute path, just use that if it exists
         if (FileSysUtilsIsAbsolutePath(library_path)) {
-            if (!FileSysUtilsPathExists(library_path)) {
+            if (!FileSysUtilsLinkerPathExists(library_path)) {
                 error_ss << filename << " library " << library_path << " does not appear to exist";
                 LoaderLogger::LogErrorMessage("", error_ss.str());
                 return;
@@ -885,7 +890,7 @@ bool ApiLayerManifestFile::LocateLibraryRelativeToJson(
     std::string combined_path;
     std::string file_parent;
     if (!FileSysUtilsGetParentPath(json_filename, file_parent) ||
-        !FileSysUtilsCombinePaths(file_parent, library_path, combined_path) || !FileSysUtilsPathExists(combined_path)) {
+        !FileSysUtilsCombinePaths(file_parent, library_path, combined_path) || !FileSysUtilsLinkerPathExists(combined_path)) {
         out_combined_path = combined_path;
         return false;
     }
@@ -898,7 +903,7 @@ bool ApiLayerManifestFile::LocateLibraryInAssets(const std::string & /* json_fil
                                                  std::string &out_combined_path) {
     std::string combined_path;
     std::string file_parent = GetAndroidNativeLibraryDir();
-    if (!FileSysUtilsCombinePaths(file_parent, library_path, combined_path) || !FileSysUtilsPathExists(combined_path)) {
+    if (!FileSysUtilsCombinePaths(file_parent, library_path, combined_path) || !FileSysUtilsLinkerPathExists(combined_path)) {
         out_combined_path = combined_path;
         return false;
     }
