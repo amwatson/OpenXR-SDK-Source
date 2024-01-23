@@ -60,6 +60,8 @@ bool FileSysUtilsIsDirectory(const std::string& path) { return FS_PREFIX::is_dir
 
 bool FileSysUtilsPathExists(const std::string& path) { return FS_PREFIX::exists(path); }
 
+bool FileSysUtilsLinkerPathExists(const std::string& path) { return FileSysUtilsPathExists(path); }
+
 bool FileSysUtilsIsAbsolutePath(const std::string& path) {
     FS_PREFIX::path file_path(path);
     return file_path.is_absolute();
@@ -138,6 +140,8 @@ bool FileSysUtilsIsDirectory(const std::string& path) {
 bool FileSysUtilsPathExists(const std::string& path) {
     return (GetFileAttributesW(utf8_to_wide(path).c_str()) != INVALID_FILE_ATTRIBUTES);
 }
+
+bool FileSysUtilsLinkerPathExists(const std::string& path) { return FileSysUtilsPathExists(path); }
 
 bool FileSysUtilsIsAbsolutePath(const std::string& path) {
     bool pathStartsWithDir = (path.size() >= 1) && ((path[0] == DIRECTORY_SYMBOL) || (path[0] == ALTERNATE_DIRECTORY_SYMBOL));
@@ -244,6 +248,20 @@ bool FileSysUtilsIsDirectory(const std::string& path) {
 }
 
 bool FileSysUtilsPathExists(const std::string& path) { return (access(path.c_str(), F_OK) != -1); }
+
+bool FileSysUtilsLinkerPathExists(const std::string& path) {
+  #ifdef XR_USE_PLATFORM_ANDROID
+  // Android's linker supports linking to libraries in zip files in the format of
+  // /path/to/zip!/path/to/lib
+  size_t pos = path.find("!/");
+  if (pos != std::string::npos) {
+    std::string apkPath = path.substr(0, pos);
+    // Assume the entry exists
+    return FileSysUtilsPathExists(apkPath);
+  }
+  #endif
+  return FileSysUtilsPathExists(path);
+}
 
 bool FileSysUtilsIsAbsolutePath(const std::string& path) { return (path[0] == DIRECTORY_SYMBOL); }
 
