@@ -15,10 +15,10 @@
 # limitations under the License.
 
 add_subdirectory(c_compile_test)
-add_subdirectory(hello_xr)
 add_subdirectory(list_json)
 
 if(NOT ANDROID)
+    add_subdirectory(hello_xr)
     add_subdirectory(list)
     if(BUILD_LOADER AND BUILD_API_LAYERS)
         add_subdirectory(loader_test)
